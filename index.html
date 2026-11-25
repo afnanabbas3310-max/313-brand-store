@@ -34,8 +34,8 @@ body{background:#dcdcdc;font-family:Poppins,sans-serif;padding:10px;color:#111}
 .total-final{display:flex;justify-content:space-between;align-items:center;background:#f0f0f0;border:1.5px solid #222;padding:7px 10px;border-radius:4px;font-size:15px;font-weight:700;margin-top:6px}
 .action-bar{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
 .btn-act{flex:1;min-width:120px;padding:9px;border:0;border-radius:5px;font:600 12.5px Poppins;color:#fff;cursor:pointer}
-.btn-save{background:#4a148c}.btn-pdf{background:#1565c0}.btn-wa{background:#25d366;color:#000}.btn-image{background:#00695c}.btn-share-image{background:#00838f}.btn-clr{background:#555;width:100%;margin-top:8px}
-.history-section{margin-top:18px;border-top:2px dashed #666;padding-top:12px}
+.btn-wa{background:#25d366;color:#000}.btn-image{background:#00695c}.btn-history{background:#1565c0}.btn-clr{background:#555;width:100%;margin-top:8px}
+.due-final{background:#fff3cd;border-color:#b8860b}.payment-line strong{font-weight:700}.history-section{margin-top:18px;border-top:2px dashed #666;padding-top:12px}
 .history-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
 .history-header h3{font-size:14px;color:#1a237e}
 .history-list{display:flex;flex-direction:column;gap:8px}
@@ -75,18 +75,20 @@ body{background:#dcdcdc;font-family:Poppins,sans-serif;padding:10px;color:#111}
     <div class="calc-line"><label for="del-amt">Delivery Charges (+):</label><input type="number" id="del-amt" min="0" step="any" value="0"></div>
     <div class="calc-line"><label for="disc-amt">Discount (-):</label><input type="number" id="disc-amt" min="0" step="any" value="0"></div>
     <div class="total-final"><span>Total Amount:</span><span id="grand-amt">Rs. 0</span></div>
+    <div class="calc-line payment-line"><label for="account-paid">Account / Bank:</label><input type="number" id="account-paid" min="0" step="any" value="0"></div>
+    <div class="calc-line payment-line"><label for="cash-paid">Cash / Nakad:</label><input type="number" id="cash-paid" min="0" step="any" value="0"></div>
+    <div class="calc-line payment-line"><span>Total Received:</span><strong id="received-amt">Rs. 0</strong></div>
+    <div class="total-final due-final"><span>Remaining / Udhaar:</span><span id="remaining-amt">Rs. 0</span></div>
   </div>
   <div class="no-print">
     <div class="action-bar">
-      <button type="button" class="btn-act btn-save" id="save-btn">💾 Save Bill</button>
-      <button type="button" class="btn-act btn-pdf" id="pdf-btn">📄 Save PDF</button>
-      <button type="button" class="btn-act btn-image" id="image-btn">🖼️ Download Bill Image</button>
-      <button type="button" class="btn-act btn-share-image" id="share-image-btn">🖼️ Share Bill Picture</button>
       <button type="button" class="btn-act btn-wa" id="wa-btn">📲 WhatsApp Image Share</button>
+      <button type="button" class="btn-act btn-history" id="history-toggle-btn">📚 Bill History</button>
+      <button type="button" class="btn-act btn-image" id="image-btn">🖼️ Save Image</button>
     </div>
     <button type="button" class="btn-act btn-clr" id="new-btn">🔄 New Bill</button>
   </div>
-  <div class="history-section no-print">
+  <div class="history-section no-print" id="history-section" style="display:none">
     <div class="history-header"><h3>Saved Bill History</h3><span id="history-count" style="font-size:12px;color:#555">0 Bills</span></div>
     <div class="history-list" id="history-list"></div>
   </div>
@@ -180,15 +182,24 @@ function calcAll() {
   const delivery = Math.max(0, Number(document.getElementById('del-amt').value) || 0);
   const discount = Math.max(0, Number(document.getElementById('disc-amt').value) || 0);
   const total = Math.max(0, subtotal + delivery - discount);
+  const accountPaid = Math.max(0, Number(document.getElementById('account-paid').value) || 0);
+  const cashPaid = Math.max(0, Number(document.getElementById('cash-paid').value) || 0);
+  const received = accountPaid + cashPaid;
+  const remaining = Math.max(0, total - received);
   document.getElementById('total-qty').textContent = money(totalQty);
   document.getElementById('sub-amt').textContent = 'Rs. ' + money(subtotal);
   document.getElementById('grand-amt').textContent = 'Rs. ' + money(total);
-  return {items, totalQty, subtotal, delivery, discount, total};
+  document.getElementById('received-amt').textContent = 'Rs. ' + money(received);
+  document.getElementById('remaining-amt').textContent = 'Rs. ' + money(remaining);
+  return {items, totalQty, subtotal, delivery, discount, total, accountPaid, cashPaid, received, remaining};
 }
-function saveBillToHistory() {
+function saveBillToHistory(showMessage = true) {
   const summary = calcAll();
   const items = summary.items.filter(x => x.qty > 0 || x.amount > 0);
-  if (!items.length) { alert('Please enter at least one suit row before saving the bill.'); return; }
+  if (!items.length) {
+    if (showMessage) alert('Please enter at least one suit row before saving the bill.');
+    return false;
+  }
   const billNo = parseInt(document.getElementById('bill-no').textContent, 10) || getNextBillNo();
   const record = {
     id: Date.now(), billNo,
@@ -196,7 +207,9 @@ function saveBillToHistory() {
     party: document.getElementById('party-name').value.trim() || 'Customer',
     phone: document.getElementById('party-phone').value.trim(),
     items, totalQty: summary.totalQty, del: summary.delivery,
-    disc: summary.discount, total: summary.total
+    disc: summary.discount, total: summary.total,
+    accountPaid: summary.accountPaid, cashPaid: summary.cashPaid,
+    received: summary.received, remaining: summary.remaining
   };
   const history = getHistory();
   const index = history.findIndex(b => Number(b.billNo) === billNo);
@@ -209,7 +222,8 @@ function saveBillToHistory() {
   }
   saveHistoryArray(history);
   renderHistory();
-  alert('Bill #' + billNo + ' saved in history!');
+  if (showMessage) alert('Bill #' + billNo + ' saved in history!');
+  return true;
 }
 function loadBill(id) {
   const bill = getHistory().find(b => Number(b.id) === Number(id));
@@ -220,6 +234,8 @@ function loadBill(id) {
   document.getElementById('party-phone').value = bill.phone || '';
   document.getElementById('del-amt').value = bill.del || 0;
   document.getElementById('disc-amt').value = bill.disc || 0;
+  document.getElementById('account-paid').value = bill.accountPaid || 0;
+  document.getElementById('cash-paid').value = bill.cashPaid || 0;
   tbody.innerHTML = '';
   addRows(Math.max((bill.items || []).length, INITIAL_ROWS));
   const rows = tbody.querySelectorAll('tr');
@@ -234,11 +250,6 @@ function loadBill(id) {
   calcAll();
   window.scrollTo({top: 0, behavior: 'smooth'});
 }
-function deleteHistoryBill(id) {
-  if (!confirm('Delete this saved bill from history?')) return;
-  saveHistoryArray(getHistory().filter(b => Number(b.id) !== Number(id)));
-  renderHistory();
-}
 function renderHistory() {
   const history = getHistory();
   const list = document.getElementById('history-list');
@@ -247,7 +258,7 @@ function renderHistory() {
   if (!history.length) {
     const empty = document.createElement('div');
     empty.style.cssText = 'font-size:12px;color:#777;padding:6px';
-    empty.textContent = 'No saved bills yet. Tap "Save Bill" to store bills here.';
+    empty.textContent = 'No saved bills yet. Bills will appear here when you share or save their image.';
     list.appendChild(empty);
     return;
   }
@@ -258,15 +269,26 @@ function renderHistory() {
     const strong = document.createElement('strong'); strong.textContent = 'Bill #' + bill.billNo;
     heading.append(strong, document.createTextNode(' • ' + (bill.party || 'Customer')));
     const sub = document.createElement('div'); sub.className = 'history-sub';
-    sub.textContent = (bill.dateStr || '') + ' • Suits: ' + (bill.totalQty || 0) + ' • Rs. ' + money(bill.total || 0);
+    sub.textContent = (bill.dateStr || '') + ' • Total: Rs. ' + money(bill.total || 0) + ' • Udhaar: Rs. ' + money(bill.remaining ?? bill.total ?? 0);
     info.append(heading, sub);
     const actions = document.createElement('div'); actions.className = 'history-actions';
     const openBtn = document.createElement('button'); openBtn.type = 'button'; openBtn.className = 'h-btn h-view'; openBtn.textContent = 'Open';
     openBtn.addEventListener('click', () => loadBill(bill.id));
-    const delBtn = document.createElement('button'); delBtn.type = 'button'; delBtn.className = 'h-btn h-del'; delBtn.textContent = '✕';
-    delBtn.addEventListener('click', () => deleteHistoryBill(bill.id));
-    actions.append(openBtn, delBtn); item.append(info, actions); list.appendChild(item);
+    // History is intentionally read-only: do not show a delete control.
+    actions.append(openBtn); item.append(info, actions); list.appendChild(item);
   });
+}
+
+function toggleBillHistory() {
+  const section = document.getElementById('history-section');
+  const isHidden = section.style.display === 'none';
+  if (isHidden) {
+    section.style.display = 'block';
+    renderHistory();
+    section.scrollIntoView({behavior: 'smooth', block: 'start'});
+  } else {
+    section.style.display = 'none';
+  }
 }
 
 function billHasItems() {
@@ -290,8 +312,19 @@ async function makeBillImage() {
   clone.style.cssText += ';position:fixed;left:-10000px;top:0;width:' +
     Math.min(original.scrollWidth, 620) + 'px;max-width:none;margin:0;box-shadow:none;z-index:-1';
 
-  // Remove all controls/history so the picture contains only the bill.
+  // Remove controls/history and completely empty item rows from the bill image.
   clone.querySelectorAll('.no-print,.history-section,.del-col,.del-cell').forEach(el => el.remove());
+
+  // Keep rows that contain any entered item detail; remove only truly blank rows.
+  clone.querySelectorAll('tbody tr').forEach(tr => {
+    const qtyInput = tr.querySelector('.qty-input');
+    const descInput = tr.querySelector('.desc-input');
+    const rateInput = tr.querySelector('.rate-input');
+    const qty = qtyInput ? Number(qtyInput.value) || 0 : 0;
+    const desc = descInput ? descInput.value.trim() : '';
+    const rate = rateInput ? Number(rateInput.value) || 0 : 0;
+    if (qty === 0 && !desc && rate === 0) tr.remove();
+  });
 
   // Convert form controls into plain text so entered values are included in the image.
   clone.querySelectorAll('input').forEach(input => {
@@ -307,7 +340,8 @@ async function makeBillImage() {
       span.style.borderBottom = '1.5px dotted #444';
       span.style.flex = '1';
     }
-    if (input.id === 'del-amt' || input.id === 'disc-amt') {
+    if (input.id === 'del-amt' || input.id === 'disc-amt' ||
+        input.id === 'account-paid' || input.id === 'cash-paid') {
       span.style.width = '105px';
       span.style.textAlign = 'right';
       span.style.border = '1px solid #888';
@@ -340,6 +374,7 @@ async function makeBillImage() {
 }
 
 async function downloadBillImage() {
+  if (!saveBillToHistory(false)) return;
   const blob = await makeBillImage();
   if (!blob) return;
   const billNo = document.getElementById('bill-no').textContent || 'bill';
@@ -353,6 +388,7 @@ async function downloadBillImage() {
 }
 
 async function shareBillImage() {
+  if (!saveBillToHistory(false)) return;
   const blob = await makeBillImage();
   if (!blob) return;
   const billNo = document.getElementById('bill-no').textContent || 'bill';
@@ -402,6 +438,8 @@ function resetBill() {
   document.getElementById('party-phone').value = '';
   document.getElementById('del-amt').value = '0';
   document.getElementById('disc-amt').value = '0';
+  document.getElementById('account-paid').value = '0';
+  document.getElementById('cash-paid').value = '0';
   tbody.replaceChildren();
   addRows(INITIAL_ROWS);
   calcAll();
@@ -415,14 +453,14 @@ tbody.addEventListener('click', event => {
 });
 document.getElementById('del-amt').addEventListener('input', calcAll);
 document.getElementById('disc-amt').addEventListener('input', calcAll);
+document.getElementById('account-paid').addEventListener('input', calcAll);
+document.getElementById('cash-paid').addEventListener('input', calcAll);
 document.getElementById('add-row-btn').addEventListener('click', () => {
   const desc = addRows(1);
   if (desc) desc.scrollIntoView({behavior:'smooth', block:'nearest'});
 });
-document.getElementById('save-btn').addEventListener('click', saveBillToHistory);
-document.getElementById('pdf-btn').addEventListener('click', () => window.print());
 document.getElementById('image-btn').addEventListener('click', downloadBillImage);
-document.getElementById('share-image-btn').addEventListener('click', shareBillImage);
+document.getElementById('history-toggle-btn').addEventListener('click', toggleBillHistory);
 document.getElementById('wa-btn').addEventListener('click', shareBillImage);
 document.getElementById('new-btn').addEventListener('click', resetBill);
 
