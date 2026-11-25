@@ -81,8 +81,8 @@ body{background:#dcdcdc;font-family:Poppins,sans-serif;padding:10px;color:#111}
       <button type="button" class="btn-act btn-save" id="save-btn">💾 Save Bill</button>
       <button type="button" class="btn-act btn-pdf" id="pdf-btn">📄 Save PDF</button>
       <button type="button" class="btn-act btn-image" id="image-btn">🖼️ Download Bill Image</button>
-      <button type="button" class="btn-act btn-share-image" id="share-image-btn">📤 Share Bill Image</button>
-      <button type="button" class="btn-act btn-wa" id="wa-btn">📲 WhatsApp Text</button>
+      <button type="button" class="btn-act btn-share-image" id="share-image-btn">🖼️ Share Bill Picture</button>
+      <button type="button" class="btn-act btn-wa" id="wa-btn">📲 WhatsApp (Text Only)</button>
     </div>
     <button type="button" class="btn-act btn-clr" id="new-btn">🔄 New Bill</button>
   </div>
@@ -384,11 +384,11 @@ function sendWA() {
   const party = document.getElementById('party-name').value.trim() || 'Customer';
   let phone = document.getElementById('party-phone').value.replace(/\\D/g, '');
   const billNo = document.getElementById('bill-no').textContent;
-  let msg = '*313 BRAND STORE - BILL #' + billNo + '*\\n';
-  msg += 'Party / Customer: *' + party + '*\\n------------------------\\n';
-  items.forEach((item, i) => { msg += (i + 1) + '. ' + item.desc + ' (' + money(item.qty) + ' x ' + money(item.rate) + ') = Rs. ' + money(item.amount) + '\\n'; });
-  msg += '------------------------\\nTotal Suits: *' + money(summary.totalQty) + '*\\n';
-  msg += '*Total Amount: Rs. ' + money(summary.total) + '*\\nThank you for shopping with us!';
+  let msg = '*313 BRAND STORE - BILL #' + billNo + '*\n';
+  msg += 'Party / Customer: *' + party + '*\n------------------------\n';
+  items.forEach((item, i) => { msg += (i + 1) + '. ' + item.desc + ' (' + money(item.qty) + ' x ' + money(item.rate) + ') = Rs. ' + money(item.amount) + '\n'; });
+  msg += '------------------------\nTotal Suits: *' + money(summary.totalQty) + '*\n';
+  msg += '*Total Amount: Rs. ' + money(summary.total) + '*\nThank you for shopping with us!';
   if (phone.startsWith('03') && phone.length === 11) phone = '92' + phone.substring(1);
   if (phone.startsWith('0092')) phone = phone.substring(2);
   if (phone && !/^92\\d{10}$/.test(phone)) { alert('Please enter a valid Pakistani mobile number, or clear the phone field to share without a number.'); return; }
