@@ -82,7 +82,7 @@ body{background:#dcdcdc;font-family:Poppins,sans-serif;padding:10px;color:#111}
       <button type="button" class="btn-act btn-pdf" id="pdf-btn">📄 Save PDF</button>
       <button type="button" class="btn-act btn-image" id="image-btn">🖼️ Download Bill Image</button>
       <button type="button" class="btn-act btn-share-image" id="share-image-btn">🖼️ Share Bill Picture</button>
-      <button type="button" class="btn-act btn-wa" id="wa-btn">📲 WhatsApp (Text Only)</button>
+      <button type="button" class="btn-act btn-wa" id="wa-btn">📲 WhatsApp Image Share</button>
     </div>
     <button type="button" class="btn-act btn-clr" id="new-btn">🔄 New Bill</button>
   </div>
@@ -316,11 +316,9 @@ async function makeBillImage() {
     input.replaceWith(span);
   });
 
-  // Show the printable text mirrors for item rows.
-  clone.querySelectorAll('.row-input').forEach(el => el.remove());
-  clone.querySelectorAll('.print-desc-text').forEach(el => {
-    el.style.display = 'block';
-  });
+  // Inputs have already been replaced with their entered values above.
+  // Remove print-only mirror labels so each item appears only once in the image.
+  clone.querySelectorAll('.row-input,.print-desc-text').forEach(el => el.remove());
 
   document.body.appendChild(clone);
   try {
@@ -425,7 +423,7 @@ document.getElementById('save-btn').addEventListener('click', saveBillToHistory)
 document.getElementById('pdf-btn').addEventListener('click', () => window.print());
 document.getElementById('image-btn').addEventListener('click', downloadBillImage);
 document.getElementById('share-image-btn').addEventListener('click', shareBillImage);
-document.getElementById('wa-btn').addEventListener('click', sendWA);
+document.getElementById('wa-btn').addEventListener('click', shareBillImage);
 document.getElementById('new-btn').addEventListener('click', resetBill);
 
 setToday();
