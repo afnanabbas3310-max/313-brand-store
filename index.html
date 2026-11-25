@@ -34,7 +34,7 @@ body{background:#dcdcdc;font-family:Poppins,sans-serif;padding:10px;color:#111}
 .total-final{display:flex;justify-content:space-between;align-items:center;background:#f0f0f0;border:1.5px solid #222;padding:7px 10px;border-radius:4px;font-size:15px;font-weight:700;margin-top:6px}
 .action-bar{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
 .btn-act{flex:1;min-width:120px;padding:9px;border:0;border-radius:5px;font:600 12.5px Poppins;color:#fff;cursor:pointer}
-.btn-save{background:#4a148c}.btn-pdf{background:#1565c0}.btn-wa{background:#25d366;color:#000}.btn-clr{background:#555;width:100%;margin-top:8px}
+.btn-save{background:#4a148c}.btn-pdf{background:#1565c0}.btn-wa{background:#25d366;color:#000}.btn-image{background:#00695c}.btn-share-image{background:#00838f}.btn-clr{background:#555;width:100%;margin-top:8px}
 .history-section{margin-top:18px;border-top:2px dashed #666;padding-top:12px}
 .history-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
 .history-header h3{font-size:14px;color:#1a237e}
@@ -80,7 +80,9 @@ body{background:#dcdcdc;font-family:Poppins,sans-serif;padding:10px;color:#111}
     <div class="action-bar">
       <button type="button" class="btn-act btn-save" id="save-btn">💾 Save Bill</button>
       <button type="button" class="btn-act btn-pdf" id="pdf-btn">📄 Save PDF</button>
-      <button type="button" class="btn-act btn-wa" id="wa-btn">📲 WhatsApp</button>
+      <button type="button" class="btn-act btn-image" id="image-btn">🖼️ Download Bill Image</button>
+      <button type="button" class="btn-act btn-share-image" id="share-image-btn">📤 Share Bill Image</button>
+      <button type="button" class="btn-act btn-wa" id="wa-btn">📲 WhatsApp Text</button>
     </div>
     <button type="button" class="btn-act btn-clr" id="new-btn">🔄 New Bill</button>
   </div>
@@ -89,6 +91,7 @@ body{background:#dcdcdc;font-family:Poppins,sans-serif;padding:10px;color:#111}
     <div class="history-list" id="history-list"></div>
   </div>
 </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
 'use strict';
 const tbody = document.getElementById('rows-body');
@@ -265,6 +268,115 @@ function renderHistory() {
     actions.append(openBtn, delBtn); item.append(info, actions); list.appendChild(item);
   });
 }
+
+function billHasItems() {
+  const items = calcAll().items.filter(x => x.qty > 0 || x.amount > 0);
+  if (!items.length) {
+    alert('Please enter at least one suit row before making a bill image.');
+    return false;
+  }
+  return true;
+}
+
+async function makeBillImage() {
+  if (!billHasItems()) return null;
+  if (typeof window.html2canvas !== 'function') {
+    alert('Image tool could not load. Please check your internet connection and try again.');
+    return null;
+  }
+
+  const original = document.querySelector('.bill-book-page');
+  const clone = original.cloneNode(true);
+  clone.style.cssText += ';position:fixed;left:-10000px;top:0;width:' +
+    Math.min(original.scrollWidth, 620) + 'px;max-width:none;margin:0;box-shadow:none;z-index:-1';
+
+  // Remove all controls/history so the picture contains only the bill.
+  clone.querySelectorAll('.no-print,.history-section,.del-col,.del-cell').forEach(el => el.remove());
+
+  // Convert form controls into plain text so entered values are included in the image.
+  clone.querySelectorAll('input').forEach(input => {
+    const span = document.createElement('span');
+    let value = input.value;
+    if (input.id === 'del-amt' || input.id === 'disc-amt') value = value || '0';
+    span.textContent = value || (input.placeholder || '');
+    span.style.cssText = 'display:inline-block;min-height:22px;padding:3px 5px;font:13px Poppins,sans-serif;color:#111;white-space:pre-wrap;overflow-wrap:anywhere;';
+    if (input.classList.contains('qty-input')) span.style.textAlign = 'center';
+    if (input.classList.contains('rate-input')) span.style.textAlign = 'right';
+    if (input.classList.contains('desc-input')) span.style.textAlign = 'left';
+    if (input.id === 'party-name' || input.id === 'party-phone') {
+      span.style.borderBottom = '1.5px dotted #444';
+      span.style.flex = '1';
+    }
+    if (input.id === 'del-amt' || input.id === 'disc-amt') {
+      span.style.width = '105px';
+      span.style.textAlign = 'right';
+      span.style.border = '1px solid #888';
+      span.style.borderRadius = '4px';
+    }
+    input.replaceWith(span);
+  });
+
+  // Show the printable text mirrors for item rows.
+  clone.querySelectorAll('.row-input').forEach(el => el.remove());
+  clone.querySelectorAll('.print-desc-text').forEach(el => {
+    el.style.display = 'block';
+  });
+
+  document.body.appendChild(clone);
+  try {
+    await document.fonts.ready;
+    const canvas = await window.html2canvas(clone, {
+      scale: 2,
+      backgroundColor: '#ffffff',
+      useCORS: true,
+      logging: false
+    });
+    return await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+  } catch (err) {
+    console.error(err);
+    alert('Bill image could not be created. Please try again.');
+    return null;
+  } finally {
+    clone.remove();
+  }
+}
+
+async function downloadBillImage() {
+  const blob = await makeBillImage();
+  if (!blob) return;
+  const billNo = document.getElementById('bill-no').textContent || 'bill';
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = '313-Brand-Store-Bill-' + billNo + '.png';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(link.href), 1500);
+}
+
+async function shareBillImage() {
+  const blob = await makeBillImage();
+  if (!blob) return;
+  const billNo = document.getElementById('bill-no').textContent || 'bill';
+  const file = new File([blob], '313-Brand-Store-Bill-' + billNo + '.png', {type: 'image/png'});
+
+  if (navigator.canShare && navigator.canShare({files: [file]}) && navigator.share) {
+    try {
+      await navigator.share({
+        files: [file],
+        title: '313 Brand Store Bill #' + billNo
+      });
+    } catch (err) {
+      if (err && err.name !== 'AbortError') {
+        alert('Sharing was not completed. You can download the bill image and attach it in WhatsApp.');
+      }
+    }
+  } else {
+    await downloadBillImage();
+    alert('Your browser cannot share image files directly. The bill image was downloaded; attach it in WhatsApp.');
+  }
+}
+
 function sendWA() {
   const summary = calcAll();
   const items = summary.items.filter(x => x.qty > 0 || x.amount > 0);
@@ -311,6 +423,8 @@ document.getElementById('add-row-btn').addEventListener('click', () => {
 });
 document.getElementById('save-btn').addEventListener('click', saveBillToHistory);
 document.getElementById('pdf-btn').addEventListener('click', () => window.print());
+document.getElementById('image-btn').addEventListener('click', downloadBillImage);
+document.getElementById('share-image-btn').addEventListener('click', shareBillImage);
 document.getElementById('wa-btn').addEventListener('click', sendWA);
 document.getElementById('new-btn').addEventListener('click', resetBill);
 
