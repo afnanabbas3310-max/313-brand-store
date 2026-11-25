@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>313 Brand Store - Bulk Bill Book</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#dcdcdc;font-family:Poppins,sans-serif;padding:10px;color:#111}
+.bill-book-page{max-width:620px;margin:0 auto;background:#fff;border:2px solid #222;border-radius:6px;padding:14px 10px;box-shadow:0 6px 20px #0004}
+.top-meta{display:flex;justify-content:space-between;align-items:center;font-size:13px;margin-bottom:8px;padding:0 4px;font-weight:600}
+.serial-box,.date-box{border-bottom:1.5px dotted #333;padding:0 8px}
+.serial-box{color:#b71c1c;font-weight:700}
+.store-title-box{text-align:center;margin:6px 0 8px}
+.store-title-box h1{font-size:22px;letter-spacing:1px;color:#111;border:2px solid #111;border-radius:25px;display:inline-block;padding:4px 20px;background:#fafafa;text-transform:uppercase}
+.address-strip{background:#222;color:#fff;text-align:center;font-size:11px;padding:6px 8px;border-radius:4px;margin:8px 0 12px;line-height:1.5}
+.party-row{display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:13px;font-weight:600;flex-wrap:wrap}
+.party-row input{flex:1;min-width:140px;border:0;border-bottom:1.5px dotted #444;font:13px Poppins;padding:3px 6px;outline:none;background:transparent}
+.bill-table{width:100%;border-collapse:collapse;margin-top:4px;table-layout:fixed}
+.bill-table th{background:#222;color:#fff;font-size:12px;padding:7px 3px;border:1px solid #222;text-align:center}
+.bill-table th.qty-col{width:12%}.bill-table th.desc-col{width:45%}.bill-table th.rate-col{width:16%}.bill-table th.amt-col{width:19%}.bill-table th.del-col{width:8%}
+.bill-table td{border-bottom:1.5px dotted #555;border-left:1px solid #ccc;border-right:1px solid #ccc;padding:5px 2px;font-size:12px;text-align:center;vertical-align:middle;overflow-wrap:anywhere}
+.row-input{width:100%;border:1px solid transparent;background:transparent;font:11.5px Poppins;padding:4px 3px;border-radius:3px;outline:none}
+.row-input:focus{border-color:#1a237e;background:#fffdf2}
+.qty-input{text-align:center}.desc-input{text-align:left;line-height:1.35}.rate-input{text-align:right}
+.amt-cell{text-align:right;padding-right:4px!important;font-weight:600;font-size:12px}
+.close-row-btn{background:#ffebee;color:#c62828;border:1px solid #ef9a9a;border-radius:4px;width:22px;height:22px;font-size:11px;font-weight:700;cursor:pointer}
+.print-desc-text{display:none;text-align:left;font-size:11.5px;line-height:1.35;white-space:normal;word-break:break-word;padding:2px 3px}
+.add-one-row-btn{width:100%;margin-top:8px;padding:9px;background:#1b5e20;color:#fff;border:0;border-radius:4px;font-size:13px;font-weight:600;cursor:pointer}
+.footer-calc{margin-top:12px;border-top:2px solid #222;padding-top:8px}
+.calc-line{display:flex;justify-content:space-between;align-items:center;font-size:13px;margin-bottom:6px;padding:0 4px}
+.calc-line input{width:105px;padding:4px 6px;border:1px solid #888;border-radius:4px;text-align:right;font:13px Poppins}
+.total-final{display:flex;justify-content:space-between;align-items:center;background:#f0f0f0;border:1.5px solid #222;padding:7px 10px;border-radius:4px;font-size:15px;font-weight:700;margin-top:6px}
+.action-bar{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.btn-act{flex:1;min-width:120px;padding:9px;border:0;border-radius:5px;font:600 12.5px Poppins;color:#fff;cursor:pointer}
+.btn-save{background:#4a148c}.btn-pdf{background:#1565c0}.btn-wa{background:#25d366;color:#000}.btn-clr{background:#555;width:100%;margin-top:8px}
+.history-section{margin-top:18px;border-top:2px dashed #666;padding-top:12px}
+.history-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.history-header h3{font-size:14px;color:#1a237e}
+.history-list{display:flex;flex-direction:column;gap:8px}
+.history-item{background:#f8f9fa;border:1px solid #ccc;border-radius:5px;padding:8px 10px;display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px}
+.history-info strong{color:#b71c1c}.history-sub{color:#555;font-size:11px;margin-top:2px}
+.history-actions{display:flex;gap:5px}.h-btn{border:0;border-radius:4px;padding:5px 8px;font-size:11px;font-weight:600;cursor:pointer;color:#fff}
+.h-view{background:#1565c0}.h-del{background:#c62828}
+@media print{
+ body{background:#fff;padding:0}.bill-book-page{border:1.5px solid #000;box-shadow:none;max-width:100%}
+ .no-print,.del-col,.del-cell,.history-section{display:none!important}.row-input{display:none!important}.print-desc-text{display:block!important}
+ .calc-line input{border:0!important;background:transparent!important;padding:2px!important}
+ .party-row input{border:0!important;background:transparent!important}
+}
+</style>
+</head>
+<body>
+<div class="bill-book-page">
+  <div class="top-meta">
+    <div><span>Bill No:</span> <span class="serial-box" id="bill-no">1</span></div>
+    <div><span>Date:</span> <span class="date-box" id="bill-date"></span></div>
+  </div>
+  <div class="store-title-box"><h1>313 Brand Store</h1></div>
+  <div class="address-strip">Men &amp; Women Unstitched Collection • Contact / WhatsApp: 03274304007</div>
+  <div class="party-row">
+    <span>Party / Customer:</span>
+    <input type="text" id="party-name" placeholder="Enter customer name">
+    <input type="tel" id="party-phone" placeholder="Phone (03xx...)" style="max-width:135px">
+  </div>
+  <table class="bill-table">
+    <thead><tr><th class="qty-col">Qty</th><th class="desc-col">Description</th><th class="rate-col">Rate</th><th class="amt-col">Amount</th><th class="del-col"></th></tr></thead>
+    <tbody id="rows-body"></tbody>
+  </table>
+  <button type="button" id="add-row-btn" class="add-one-row-btn no-print">+ Add 1 Row</button>
+  <div class="footer-calc">
+    <div class="calc-line"><span>Total Suits / Qty:</span><strong id="total-qty">0</strong></div>
+    <div class="calc-line"><span>Subtotal:</span><span id="sub-amt">Rs. 0</span></div>
+    <div class="calc-line"><label for="del-amt">Delivery Charges (+):</label><input type="number" id="del-amt" min="0" step="any" value="0"></div>
+    <div class="calc-line"><label for="disc-amt">Discount (-):</label><input type="number" id="disc-amt" min="0" step="any" value="0"></div>
+    <div class="total-final"><span>Total Amount:</span><span id="grand-amt">Rs. 0</span></div>
+  </div>
+  <div class="no-print">
+    <div class="action-bar">
+      <button type="button" class="btn-act btn-save" id="save-btn">💾 Save Bill</button>
+      <button type="button" class="btn-act btn-pdf" id="pdf-btn">📄 Save PDF</button>
+      <button type="button" class="btn-act btn-wa" id="wa-btn">📲 WhatsApp</button>
+    </div>
+    <button type="button" class="btn-act btn-clr" id="new-btn">🔄 New Bill</button>
+  </div>
+  <div class="history-section no-print">
+    <div class="history-header"><h3>Saved Bill History</h3><span id="history-count" style="font-size:12px;color:#555">0 Bills</span></div>
+    <div class="history-list" id="history-list"></div>
+  </div>
+</div>
+<script>
+'use strict';
+const tbody = document.getElementById('rows-body');
+const INITIAL_ROWS = 5;
+const NEXT_BILL_KEY = 'store313_next_bill_no';
+const HISTORY_KEY = 'store313_bill_history';
+const memoryStore = Object.create(null);
+
+function safeGetItem(key) {
+  try { return window.localStorage.getItem(key); }
+  catch (e) { return Object.prototype.hasOwnProperty.call(memoryStore, key) ? memoryStore[key] : null; }
+}
+function safeSetItem(key, value) {
+  const str = String(value);
+  memoryStore[key] = str;
+  try { window.localStorage.setItem(key, str); } catch (e) {}
+}
+function getNextBillNo() {
+  let n = parseInt(safeGetItem(NEXT_BILL_KEY), 10);
+  if (!Number.isInteger(n) || n < 1) { n = 1; safeSetItem(NEXT_BILL_KEY, n); }
+  return n;
+}
+function setDisplayBillNo(n) { document.getElementById('bill-no').textContent = String(n); }
+function getHistory() {
+  try {
+    const parsed = JSON.parse(safeGetItem(HISTORY_KEY) || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) { return []; }
+}
+function saveHistoryArray(list) { safeSetItem(HISTORY_KEY, JSON.stringify(list)); }
+function money(value) {
+  const n = Number(value) || 0;
+  return Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/0+$/, '').replace(/\\.$/, '');
+}
+function setToday() { document.getElementById('bill-date').textContent = new Date().toLocaleDateString('en-GB'); }
+
+function addRows(count) {
+  let lastDesc = null;
+  for (let i = 0; i < Math.max(1, parseInt(count, 10) || 1); i++) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input type="number" class="row-input qty-input" min="0" step="any" placeholder="0"><span class="print-desc-text print-qty"></span></td>
+      <td><input type="text" class="row-input desc-input" placeholder="Suit details"><div class="print-desc-text print-desc"></div></td>
+      <td><input type="number" class="row-input rate-input" min="0" step="any" placeholder="0"><span class="print-desc-text print-rate"></span></td>
+      <td class="amt-cell">0</td>
+      <td class="del-cell no-print"><button type="button" class="close-row-btn" title="Remove row">✕</button></td>`;
+    tbody.appendChild(tr);
+    lastDesc = tr.querySelector('.desc-input');
+  }
+  calcAll();
+  return lastDesc;
+}
+function deleteRow(btn) {
+  const tr = btn.closest('tr');
+  if (tr) tr.remove();
+  if (!tbody.children.length) addRows(1);
+  calcAll();
+}
+function syncRow(input) {
+  const tr = input.closest('tr');
+  const qtyText = tr.querySelector('.qty-input').value;
+  const descText = tr.querySelector('.desc-input').value;
+  const rateText = tr.querySelector('.rate-input').value;
+  tr.querySelector('.print-qty').textContent = qtyText;
+  tr.querySelector('.print-desc').textContent = descText;
+  tr.querySelector('.print-rate').textContent = rateText;
+  const qty = Math.max(0, Number(qtyText) || 0);
+  const rate = Math.max(0, Number(rateText) || 0);
+  tr.querySelector('.amt-cell').textContent = money(qty * rate);
+  calcAll();
+}
+function getFilledItems() {
+  const items = [];
+  tbody.querySelectorAll('tr').forEach(tr => {
+    const qty = Math.max(0, Number(tr.querySelector('.qty-input').value) || 0);
+    const desc = tr.querySelector('.desc-input').value.trim();
+    const rate = Math.max(0, Number(tr.querySelector('.rate-input').value) || 0);
+    if (qty > 0 || desc || rate > 0) items.push({qty, desc: desc || 'Suit', rate, amount: qty * rate});
+  });
+  return items;
+}
+function calcAll() {
+  const items = getFilledItems();
+  const totalQty = items.reduce((s, x) => s + x.qty, 0);
+  const subtotal = items.reduce((s, x) => s + x.amount, 0);
+  const delivery = Math.max(0, Number(document.getElementById('del-amt').value) || 0);
+  const discount = Math.max(0, Number(document.getElementById('disc-amt').value) || 0);
+  const total = Math.max(0, subtotal + delivery - discount);
+  document.getElementById('total-qty').textContent = money(totalQty);
+  document.getElementById('sub-amt').textContent = 'Rs. ' + money(subtotal);
+  document.getElementById('grand-amt').textContent = 'Rs. ' + money(total);
+  return {items, totalQty, subtotal, delivery, discount, total};
+}
+function saveBillToHistory() {
+  const summary = calcAll();
+  const items = summary.items.filter(x => x.qty > 0 || x.amount > 0);
+  if (!items.length) { alert('Please enter at least one suit row before saving the bill.'); return; }
+  const billNo = parseInt(document.getElementById('bill-no').textContent, 10) || getNextBillNo();
+  const record = {
+    id: Date.now(), billNo,
+    dateStr: document.getElementById('bill-date').textContent,
+    party: document.getElementById('party-name').value.trim() || 'Customer',
+    phone: document.getElementById('party-phone').value.trim(),
+    items, totalQty: summary.totalQty, del: summary.delivery,
+    disc: summary.discount, total: summary.total
+  };
+  const history = getHistory();
+  const index = history.findIndex(b => Number(b.billNo) === billNo);
+  if (index >= 0) {
+    record.id = history[index].id;
+    history[index] = record;
+  } else {
+    history.unshift(record);
+    safeSetItem(NEXT_BILL_KEY, Math.max(getNextBillNo(), billNo + 1));
+  }
+  saveHistoryArray(history);
+  renderHistory();
+  alert('Bill #' + billNo + ' saved in history!');
+}
+function loadBill(id) {
+  const bill = getHistory().find(b => Number(b.id) === Number(id));
+  if (!bill) return;
+  setDisplayBillNo(bill.billNo);
+  document.getElementById('bill-date').textContent = bill.dateStr || '';
+  document.getElementById('party-name').value = bill.party === 'Customer' ? '' : (bill.party || '');
+  document.getElementById('party-phone').value = bill.phone || '';
+  document.getElementById('del-amt').value = bill.del || 0;
+  document.getElementById('disc-amt').value = bill.disc || 0;
+  tbody.innerHTML = '';
+  addRows(Math.max((bill.items || []).length, INITIAL_ROWS));
+  const rows = tbody.querySelectorAll('tr');
+  (bill.items || []).forEach((item, i) => {
+    const tr = rows[i];
+    if (!tr) return;
+    tr.querySelector('.qty-input').value = item.qty ?? 0;
+    tr.querySelector('.desc-input').value = item.desc || '';
+    tr.querySelector('.rate-input').value = item.rate ?? 0;
+    syncRow(tr.querySelector('.desc-input'));
+  });
+  calcAll();
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+function deleteHistoryBill(id) {
+  if (!confirm('Delete this saved bill from history?')) return;
+  saveHistoryArray(getHistory().filter(b => Number(b.id) !== Number(id)));
+  renderHistory();
+}
+function renderHistory() {
+  const history = getHistory();
+  const list = document.getElementById('history-list');
+  document.getElementById('history-count').textContent = history.length + (history.length === 1 ? ' Bill' : ' Bills');
+  list.replaceChildren();
+  if (!history.length) {
+    const empty = document.createElement('div');
+    empty.style.cssText = 'font-size:12px;color:#777;padding:6px';
+    empty.textContent = 'No saved bills yet. Tap "Save Bill" to store bills here.';
+    list.appendChild(empty);
+    return;
+  }
+  history.forEach(bill => {
+    const item = document.createElement('div'); item.className = 'history-item';
+    const info = document.createElement('div'); info.className = 'history-info';
+    const heading = document.createElement('div');
+    const strong = document.createElement('strong'); strong.textContent = 'Bill #' + bill.billNo;
+    heading.append(strong, document.createTextNode(' • ' + (bill.party || 'Customer')));
+    const sub = document.createElement('div'); sub.className = 'history-sub';
+    sub.textContent = (bill.dateStr || '') + ' • Suits: ' + (bill.totalQty || 0) + ' • Rs. ' + money(bill.total || 0);
+    info.append(heading, sub);
+    const actions = document.createElement('div'); actions.className = 'history-actions';
+    const openBtn = document.createElement('button'); openBtn.type = 'button'; openBtn.className = 'h-btn h-view'; openBtn.textContent = 'Open';
+    openBtn.addEventListener('click', () => loadBill(bill.id));
+    const delBtn = document.createElement('button'); delBtn.type = 'button'; delBtn.className = 'h-btn h-del'; delBtn.textContent = '✕';
+    delBtn.addEventListener('click', () => deleteHistoryBill(bill.id));
+    actions.append(openBtn, delBtn); item.append(info, actions); list.appendChild(item);
+  });
+}
+function sendWA() {
+  const summary = calcAll();
+  const items = summary.items.filter(x => x.qty > 0 || x.amount > 0);
+  if (!items.length) { alert('Please enter at least one suit row with Qty and Rate.'); return; }
+  const party = document.getElementById('party-name').value.trim() || 'Customer';
+  let phone = document.getElementById('party-phone').value.replace(/\\D/g, '');
+  const billNo = document.getElementById('bill-no').textContent;
+  let msg = '*313 BRAND STORE - BILL #' + billNo + '*\\n';
+  msg += 'Party / Customer: *' + party + '*\\n------------------------\\n';
+  items.forEach((item, i) => { msg += (i + 1) + '. ' + item.desc + ' (' + money(item.qty) + ' x ' + money(item.rate) + ') = Rs. ' + money(item.amount) + '\\n'; });
+  msg += '------------------------\\nTotal Suits: *' + money(summary.totalQty) + '*\\n';
+  msg += '*Total Amount: Rs. ' + money(summary.total) + '*\\nThank you for shopping with us!';
+  if (phone.startsWith('03') && phone.length === 11) phone = '92' + phone.substring(1);
+  if (phone.startsWith('0092')) phone = phone.substring(2);
+  if (phone && !/^92\\d{10}$/.test(phone)) { alert('Please enter a valid Pakistani mobile number, or clear the phone field to share without a number.'); return; }
+  const url = phone ? 'https://wa.me/' + phone + '?text=' + encodeURIComponent(msg) : 'https://wa.me/?text=' + encodeURIComponent(msg);
+  window.open(url, '_blank', 'noopener');
+}
+function resetBill() {
+  if (!confirm('Start a new bill? Unsaved changes will be cleared.')) return;
+  // Always use the next available number; prevents reusing a saved bill number.
+  setDisplayBillNo(getNextBillNo());
+  setToday();
+  document.getElementById('party-name').value = '';
+  document.getElementById('party-phone').value = '';
+  document.getElementById('del-amt').value = '0';
+  document.getElementById('disc-amt').value = '0';
+  tbody.replaceChildren();
+  addRows(INITIAL_ROWS);
+  calcAll();
+}
+tbody.addEventListener('input', event => {
+  if (event.target.matches('.qty-input,.desc-input,.rate-input')) syncRow(event.target);
+});
+tbody.addEventListener('click', event => {
+  const button = event.target.closest('.close-row-btn');
+  if (button) deleteRow(button);
+});
+document.getElementById('del-amt').addEventListener('input', calcAll);
+document.getElementById('disc-amt').addEventListener('input', calcAll);
+document.getElementById('add-row-btn').addEventListener('click', () => {
+  const desc = addRows(1);
+  if (desc) desc.scrollIntoView({behavior:'smooth', block:'nearest'});
+});
+document.getElementById('save-btn').addEventListener('click', saveBillToHistory);
+document.getElementById('pdf-btn').addEventListener('click', () => window.print());
+document.getElementById('wa-btn').addEventListener('click', sendWA);
+document.getElementById('new-btn').addEventListener('click', resetBill);
+
+setToday();
+setDisplayBillNo(getNextBillNo());
+addRows(INITIAL_ROWS);
+calcAll();
+renderHistory();
+</script>
+</body>
+</html>
