@@ -192,7 +192,23 @@ function money(value) {
   const n = Number(value) || 0;
   return Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
 }
-function setToday() { document.getElementById('bill-date').textContent = new Date().toLocaleDateString('en-GB'); }
+function getCurrentDateStr() {
+  const now = new Date();
+  const datePart = now.toLocaleDateString('en-GB');
+  const dayPart = now.toLocaleDateString('en-US', { weekday: 'long' });
+  return `${datePart}, ${dayPart}`;
+}
+function setToday() {
+  document.getElementById('bill-date').textContent = getCurrentDateStr();
+}
+function syncLiveDate() {
+  const current = getCurrentDateStr();
+  const dateEl = document.getElementById('bill-date');
+  if (dateEl.textContent !== current) {
+    dateEl.textContent = current;
+    saveDraft();
+  }
+}
 
 function readTableInputs(container) {
   const list = [];
@@ -209,7 +225,7 @@ function readTableInputs(container) {
 function saveDraft() {
   const draft = {
     billNo: parseInt(document.getElementById('bill-no').textContent, 10) || getNextBillNo(),
-    dateStr: document.getElementById('bill-date').textContent,
+    dateStr: getCurrentDateStr(),
     partyName: document.getElementById('party-name').value,
     partyPhone: document.getElementById('party-phone').value,
     del: document.getElementById('del-amt').value,
@@ -243,7 +259,7 @@ function restoreDraft() {
     const draft = JSON.parse(raw);
     if (!draft || typeof draft !== 'object') return false;
     setDisplayBillNo(draft.billNo || getNextBillNo());
-    document.getElementById('bill-date').textContent = draft.dateStr || new Date().toLocaleDateString('en-GB');
+    setToday();
     document.getElementById('party-name').value = draft.partyName || '';
     document.getElementById('party-phone').value = draft.partyPhone || '';
     document.getElementById('del-amt').value = draft.del ?? '0';
@@ -252,7 +268,7 @@ function restoreDraft() {
     document.getElementById('cash-paid').value = draft.cashPaid ?? '0';
     populateContainerRows(tbody, draft.rows, INITIAL_ROWS, 'Suit details');
     populateContainerRows(retTbody, draft.returnRows, INITIAL_RETURN_ROWS, 'Return suit details');
-    calcAll(false);
+    calcAll(true);
     return true;
   } catch (e) {
     return false;
@@ -351,6 +367,7 @@ function calcAll(shouldSaveDraft = true) {
 }
 
 function saveBillToHistory(showMessage = true) {
+  syncLiveDate();
   const summary = calcAll(false);
   const items = summary.items.filter(x => x.qty > 0 || x.amount > 0);
   const returnItems = summary.returnItems.filter(x => x.qty > 0 || x.amount > 0);
@@ -361,7 +378,7 @@ function saveBillToHistory(showMessage = true) {
   const billNo = parseInt(document.getElementById('bill-no').textContent, 10) || getNextBillNo();
   const record = {
     id: Date.now(), billNo,
-    dateStr: document.getElementById('bill-date').textContent,
+    dateStr: getCurrentDateStr(),
     party: document.getElementById('party-name').value.trim() || 'Customer',
     phone: document.getElementById('party-phone').value.trim(),
     items, returnItems,
@@ -390,7 +407,7 @@ function loadBill(id) {
   const bill = getHistory().find(b => Number(b.id) === Number(id));
   if (!bill) return;
   setDisplayBillNo(bill.billNo);
-  document.getElementById('bill-date').textContent = bill.dateStr || '';
+  document.getElementById('bill-date').textContent = bill.dateStr || getCurrentDateStr();
   document.getElementById('party-name').value = bill.party === 'Customer' ? '' : (bill.party || '');
   document.getElementById('party-phone').value = bill.phone || '';
   document.getElementById('del-amt').value = bill.del || 0;
@@ -469,6 +486,7 @@ function billHasItems() {
 }
 
 async function makeBillImage() {
+  syncLiveDate();
   if (!billHasItems()) return null;
   if (typeof window.html2canvas !== 'function') {
     alert('Image tool could not load. Please check your internet connection and try again.');
@@ -634,6 +652,12 @@ document.getElementById('image-btn').addEventListener('click', downloadBillImage
 document.getElementById('history-toggle-btn').addEventListener('click', toggleBillHistory);
 document.getElementById('wa-btn').addEventListener('click', shareBillImage);
 document.getElementById('new-btn').addEventListener('click', resetBill);
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) syncLiveDate();
+});
+window.addEventListener('focus', syncLiveDate);
+setInterval(syncLiveDate, 60000);
 
 if (!restoreDraft()) {
   setToday();
